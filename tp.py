@@ -59,13 +59,9 @@ def jacobi_paso(matrix, b, x=None):
             elif fila.size -1 -3 < i < fila.size -1 and indice > fila.size -1 -6:
                 # no incluimos los ceros del final de la matriz
                 restar -= x.item(indice)*fila.item(indice)
-            else:
-                if not (i%3 == 0 and j%3 == 2) or (i%3 == 2 and j%3 == 0):
-                    # no incluimos los ceros de cada matriz
-                    restar -= x.item(indice)*fila.item(indice)
+            elif not (i%3 == 0 and j%3 == 2) or (i%3 == 2 and j%3 == 0):
+                restar -= x.item(indice)*fila.item(indice)
 
-
-        #restar = -x.item((1+i)%3)*fila.item((1+i)%3) - x.item((2+i)%3)*fila.item((2+i)%3)
         temp = b.item(i) + restar
         x_temp[i] = temp/float(fila.item(i))
         # print x_temp
@@ -73,12 +69,37 @@ def jacobi_paso(matrix, b, x=None):
 
     return x_temp
 
+
+def rtol(xk, xk_1):
+    from numpy.core import Inf
+    #print xk - xk_1
+    print np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
+    return np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
+
+
+
+
 def jacobi(matriz, b):
 
-    x = jacobi_paso(matriz, b)
-    for i in xrange(100):
-        x = jacobi_paso(matriz, b, x)
-    return x
+    xk_1 = jacobi_paso(matriz, b)
+    xk = jacobi_paso(matriz, b, xk_1)
+    # while True:
+    #     raw_input()
+    #     if rtol(xk, xk_1) > 0.001:
+    #         xk = jacobi_paso(matriz, b, xk_1)
+    #         #rtol(xk, xk_1)
+    #         xk_1 = xk
+    #     else:
+    #         if rtol(xk, xk_1) == 0:
+    #             xk = jacobi_paso(matriz, b, xk_1)
+    #             #rtol(xk, xk_1)
+    #             xk_1 = xk   
+    for i in range(100):
+        xk = jacobi_paso(matriz, b, xk_1)
+        if rtol(xk, xk_1) < 0.001:
+            break
+        xk_1 = xk
+    return xk
 
 def test(matriz):
     b = np.dot(matriz, np.array([4, 4, 2]*(matriz[0].size/3) , dtype=np.float64))
@@ -86,13 +107,13 @@ def test(matriz):
     return x
 
 def crear_matriz(n):
+
     matriz = np.concatenate((B,E), axis=1)
     matriz = np.concatenate((matriz, np.zeros((3,n-6))), axis=1)
 
     if n > 6:
         cosnt_medio = np.concatenate((E,C,E), axis=1)
         for i in xrange(0, n-6, 3):
-
             medio = np.concatenate((np.zeros((3,i)), cosnt_medio), axis=1) if i > 0 else cosnt_medio
             medio = np.concatenate((medio, np.zeros((3,n -(9+i)))), axis=1) if n -(9+i) > 0 else medio
             matriz = np.concatenate((matriz, medio), axis=0)
