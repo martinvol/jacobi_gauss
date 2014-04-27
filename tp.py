@@ -51,13 +51,25 @@ def jacobi_paso(matrix, b, x=None):
         # print "x%d = %d - %d*%d - %d*%d /%d" % (i, b.item(i), x.item((1+i)%3), fila.item((1+i)%3), x.item((2+i)%3), fila.item((2+i)%3), float(fila.item(i)))
         restar = 0
         for j in range(1, fila.size):
-            #print j
-            restar -= 1*x.item((j+i)%fila.size)*fila.item((j+i)%fila.size)
+            indice = (j+i)%fila.size # estos son los subindices a encontrar
+
+            if 0 <= i < 3 and indice < 6:
+                # no incluimos los ceros del principio de la matriz
+                restar -= x.item(indice)*fila.item(indice)
+            elif fila.size -1 -3 < i < fila.size -1 and indice > fila.size -1 -6:
+                # no incluimos los ceros del final de la matriz
+                restar -= x.item(indice)*fila.item(indice)
+            else:
+                if not (i%3 == 0 and j%3 == 2) or (i%3 == 2 and j%3 == 0):
+                    # no incluimos los ceros de cada matriz
+                    restar -= x.item(indice)*fila.item(indice)
+
 
         #restar = -x.item((1+i)%3)*fila.item((1+i)%3) - x.item((2+i)%3)*fila.item((2+i)%3)
         temp = b.item(i) + restar
         x_temp[i] = temp/float(fila.item(i))
-        #print x_temp
+        # print x_temp
+        # raw_input()
 
     return x_temp
 
@@ -76,20 +88,13 @@ def test(matriz):
 def crear_matriz(n):
     matriz = np.concatenate((B,E), axis=1)
     matriz = np.concatenate((matriz, np.zeros((3,n-6))), axis=1)
-    # print matriz
-    # agrego lo del medio
+
     if n > 6:
         cosnt_medio = np.concatenate((E,C,E), axis=1)
-        #print medio
         for i in xrange(0, n-6, 3):
 
             medio = np.concatenate((np.zeros((3,i)), cosnt_medio), axis=1) if i > 0 else cosnt_medio
-            # print i, "i"
             medio = np.concatenate((medio, np.zeros((3,n -(9+i)))), axis=1) if n -(9+i) > 0 else medio
-            # print n -(9+i), "n -(9+i)"
-            # medio = np.concatenate((np.zeros((3,i)), medio, np.zeros((3,n -(9+i)))), axis=1)
-            # print matriz, "matriz", matriz.shape
-            # print medio, "medio", medio.shape
             matriz = np.concatenate((matriz, medio), axis=0)
     
     fin  = np.concatenate((E,D), axis=1)
@@ -100,16 +105,6 @@ def crear_matriz(n):
     return matriz
 
 if __name__ == '__main__':
-    # print test(B)
-    # print test(E)
-    # print test(C)
-    # print test(D)
-    # print test(A6)
-
-    #print crear_matriz(6)
-    #print crear_matriz(9)
-    #print crear_matriz(12)
-    for i in crear_matriz(18):
-        print i.tolist()
-    print "-"
-    #print A6
+    matriz = crear_matriz(30)
+    # print matriz
+    print test(matriz)
