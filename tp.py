@@ -126,17 +126,6 @@ def rtol(xk, xk_1):
     print np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
     return np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
 
-
-# def jacobi_algo(matriz, b):
-#     xk_1 = jacobi_paso(matriz, b)
-#     xk = jacobi_paso(matriz, b, xk_1)
-#     while True:
-#         xk = jacobi_paso(matriz, b, xk_1)
-#         if rtol(xk, xk_1) < 0.001:
-#             break
-#         xk_1 = xk
-#     return xk
-
 def resolver(algoritmo, matriz, b):
     xk_1 = jacobi_paso(matriz, b)
     xk = jacobi_paso(matriz, b, xk_1)
