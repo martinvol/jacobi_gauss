@@ -1,6 +1,16 @@
+# -*- coding: utf-8 -*-
 
+# Integrantes:
+# Gonzalo Guzzardi (94258)
+# Martín Volpe     (95442)
+
+# Ejecutar bajo Python 2.x
+
+import csv
 import numpy as np
 from numpy.core import Inf
+from numpy.linalg import norm
+from math import log, exp
 
 B = np.matrix(
             [ [2    ,   -1./2,   0     ],
@@ -39,7 +49,7 @@ A6 = np.concatenate((np.concatenate((B,E), axis=1),
 VECTOR_ORIGEN = np.array([0,0,0], dtype=np.float64,)
 
 def crear_matriz(n):
-
+    """Crea una matriz con las especificaciones del enunciado"""
     matriz = np.concatenate((B,E), axis=1)
     matriz = np.concatenate((matriz, np.zeros((3,n-6))), axis=1)
 
@@ -59,16 +69,11 @@ def crear_matriz(n):
 
 
 def jacobi_paso(matrix, b, x=None):
-    """Matriz es una matriz de 3x3,
-    b es un vector 3 y x un vector semilla de 3 """
-    if x is None:
-        x = np.zeros(matrix[0].size)
+    """Realiza una iteración con el método de Jacobi"""
 
     x_temp = np.array(x, dtype=np.float64)
 
     for i, fila in enumerate(matrix):
-        # print "x%d = b%d - a%d%dX%d - a%d%dX%d /%d%d" % (i, i, i, (1+i)%3, (1+i)%3, i, (2+i)%3, (2+i)%3, i, i)
-        # print "x%d = %d - %d*%d - %d*%d /%d" % (i, b.item(i), x.item((1+i)%3), fila.item((1+i)%3), x.item((2+i)%3), fila.item((2+i)%3), float(fila.item(i)))
         restar = 0
         for j in range(1, fila.size):
             indice = (j+i)%fila.size # estos son los subindices a encontrar
@@ -84,22 +89,15 @@ def jacobi_paso(matrix, b, x=None):
 
         temp = b.item(i) + restar
         x_temp[i] = temp/float(fila.item(i))
-        # print x_temp
-        # raw_input()
-
+        # print x_temp # descomentar esta línea para ver las iteraciones
     return x_temp
 
 def gs_paso(matrix, b, x=None):
-    """Matriz es una matriz de 3x3,
-    b es un vector 3 y x un vector semilla de 3 """
-    if x is None:
-        x = np.zeros(matrix[0].size)
+    """Realiza una iteración con el método de Gauss-Seidel"""
 
     x_temp = np.array(x, dtype=np.float64)
 
     for i, fila in enumerate(matrix):
-        # print "x%d = b%d - a%d%dX%d - a%d%dX%d /%d%d" % (i, i, i, (1+i)%3, (1+i)%3, i, (2+i)%3, (2+i)%3, i, i)
-        # print "x%d = %d - %d*%d - %d*%d /%d" % (i, b.item(i), x.item((1+i)%3), fila.item((1+i)%3), x.item((2+i)%3), fila.item((2+i)%3), float(fila.item(i)))
         restar = 0
         for j in range(1, fila.size):
             indice = (j+i)%fila.size # estos son los subindices a encontrar
@@ -115,34 +113,85 @@ def gs_paso(matrix, b, x=None):
 
         temp = b.item(i) + restar
         x_temp[i] = temp/float(fila.item(i))
-        # print x_temp
-        # raw_input()
+        # print x_temp # descomentar esta línea para ver las iteraciones
 
     return x_temp
 
 
 def rtol(xk, xk_1):
+    """Calcula el error entre los vectores de dos iteraciones"""
+    return norm(xk - xk_1 , ord=Inf)/norm(xk, ord=Inf)
 
-    print np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
-    return np.linalg.norm(xk - xk_1 , ord=Inf)/np.linalg.norm(xk, ord=Inf)
+def radio_espectral(xk, x, x0, k):
+    """Calcula el radio espectral"""
+    a = norm(xk - x, ord=Inf)
+    b = norm(x0 - x, ord=Inf)
+    lnp = (log(a) - log(b))/k
+    return exp(lnp)
 
-def resolver(algoritmo, matriz, b):
-    xk_1 = jacobi_paso(matriz, b)
-    xk = jacobi_paso(matriz, b, xk_1)
+def resolver(algoritmo, matriz, b, x):
+    """resuelve un sistema de ecuaciones y retorna sus radios espectrales
+    y errores para cada iteración."""
+    radios_espectrales = {}
+    errores = {}
+    # k = 0, # numero de iteraciones
+    x0 = np.zeros(matriz[0].size)
+    xk_1 = algoritmo(matriz, b, x0)
+    # k = 1
+    
+    errores[1] = rtol(xk_1, x0)
+    radios_espectrales[1] = radio_espectral(xk_1, x, x0, 1)
+    xk = algoritmo(matriz, b, xk_1)
+    errores[2] = rtol(xk, xk_1)
+    k = 2
     while True:
+        radios_espectrales[k] = radio_espectral(xk, x, x0, k)
         xk = algoritmo(matriz, b, xk_1)
+        errores[k] = rtol(xk, xk_1)
         if rtol(xk, xk_1) < 0.001:
             break
         xk_1 = xk
-    return xk
+        k += 1
+    print xk # resulución
+    return {"errores": errores, "radios_espectrales": radios_espectrales}
 
 def test(matriz, algoritmo):
-    b = np.dot(matriz, np.array([4, 4, 2]*(matriz[0].size/3) , dtype=np.float64))
-    x = resolver(algoritmo, matriz, b)
+    """ """
+    x = [4, 4, 2]*(matriz[0].size/3)
+    b = np.dot(matriz, np.array(x, dtype=np.float64))
+    # print b # descomentar para ver
+    # los vectores b
+    x = resolver(algoritmo, matriz, b, x)
     return x
 
+def tocsv(resultados):
+    """Exporta los datos a un archivo CSV"""
+    with open('tp.csv', 'wb') as csvfile:
+        writer = csv.writer(csvfile)
+        for r in sorted(resultados.keys()):
+            writer.writerow(["A" + str(r),])
+            for tipo in sorted(resultados[r].keys()):
+                writer.writerow(["con " + tipo,])
+                writer.writerow(["k", "errores", "radios espectrales"])
+                for k in sorted(resultados[r][tipo]["errores"].keys()):
+                    writer.writerow([
+                        str(k),
+                        resultados[r][tipo]["errores"][k],  
+                        resultados[r][tipo]["radios_espectrales"][k]])
+
 if __name__ == '__main__':
-    matriz = crear_matriz(30)
-    # print matriz
-    print test(matriz, jacobi_paso)
-    print test(matriz, gs_paso)
+    resultados = {}
+    for i in (6, 18, 24, 30):
+        resultados[i] = {}
+
+        print "matriz A" + str(i)
+        matriz = crear_matriz(i)
+        
+        print "Con jacobi"
+        resultados[i] = {"jacobi": test(matriz, jacobi_paso)}
+
+        print "Con GS"
+        resultados[i]["gs"] = test(matriz, gs_paso)
+
+        print "-"
+    tocsv(resultados)
